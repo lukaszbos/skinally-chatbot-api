@@ -33,6 +33,9 @@ router.get('/:userName/:analysisId', async (req, res, next) => {
 			return res.status(404).json({ error: 'Conversation not found' });
 		}
 
+		// Update user's currentAnalysisId to this conversation when they open it
+		db.prepare('UPDATE users SET currentAnalysisId = ? WHERE userName = ?').run(analysisId, userName);
+
 		res.json(conversation);
 	} catch (error) {
 		next(error);
@@ -66,14 +69,19 @@ router.post('/', async (req, res, next) => {
 				now
 			);
 
-		res.status(201).json({
-			id: result.lastInsertRowid,
-			userName,
-			analysisId,
-			createdAt: now,
-			updatedAt: now
-		});
-	} catch (error) {
+		const created = db
+			.prepare('SELECT * FROM conversations WHERE userName = ? AND analysisId = ?')
+			.get(userName, analysisId);
+
+		// Update user's currentAnalysisId to this conversation
+		db.prepare('UPDATE users SET currentAnalysisId = ? WHERE userName = ?').run(analysisId, userName);
+
+		res.status(201).json(created);
+	} catch (error: any) {
+		// Handle unique constraint violation (if conversation already exists)
+		if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+			return res.status(409).json({ error: 'Conversation already exists' });
+		}
 		next(error);
 	}
 });
@@ -112,6 +120,9 @@ router.put('/:userName/:analysisId', async (req, res, next) => {
 		const updated = db
 			.prepare('SELECT * FROM conversations WHERE userName = ? AND analysisId = ?')
 			.get(userName, analysisId);
+
+		// Update user's currentAnalysisId to this conversation
+		db.prepare('UPDATE users SET currentAnalysisId = ? WHERE userName = ?').run(analysisId, userName);
 
 		res.json(updated);
 	} catch (error) {

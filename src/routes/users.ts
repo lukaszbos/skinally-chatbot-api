@@ -34,7 +34,8 @@ router.post('/login', async (req, res, next) => {
 		} else {
 			// Update lastActiveAt
 			db.prepare('UPDATE users SET lastActiveAt = ? WHERE userName = ?').run(now, trimmedUserName);
-			user.lastActiveAt = now;
+			// Re-fetch user to get latest currentAnalysisId
+			user = db.prepare('SELECT * FROM users WHERE userName = ?').get(trimmedUserName);
 		}
 
 		res.json(user);
