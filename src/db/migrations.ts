@@ -1,10 +1,14 @@
 import type Database from 'better-sqlite3';
+import { logger } from '../util/logger.js';
 
 /**
  * Run database migrations
  */
 export function runMigrations(db: Database.Database): void {
+	logger.debug('Starting database migrations');
+	
 	// Create conversations table
+	logger.debug('Creating conversations table if not exists');
 	db.exec(`
 		CREATE TABLE IF NOT EXISTS conversations (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,6 +24,7 @@ export function runMigrations(db: Database.Database): void {
 	`);
 
 	// Create users table
+	logger.debug('Creating users table if not exists');
 	db.exec(`
 		CREATE TABLE IF NOT EXISTS users (
 			userName TEXT PRIMARY KEY,
@@ -30,6 +35,7 @@ export function runMigrations(db: Database.Database): void {
 	`);
 
 	// Create indexes for better query performance
+	logger.debug('Creating database indexes if not exists');
 	db.exec(`
 		CREATE INDEX IF NOT EXISTS idx_conversations_userName ON conversations(userName);
 		CREATE INDEX IF NOT EXISTS idx_conversations_analysisId ON conversations(analysisId);
@@ -37,6 +43,6 @@ export function runMigrations(db: Database.Database): void {
 		CREATE INDEX IF NOT EXISTS idx_users_lastActiveAt ON users(lastActiveAt DESC);
 	`);
 
-	console.log('✅ Database migrations completed');
+	logger.info('✅ Database migrations completed');
 }
 

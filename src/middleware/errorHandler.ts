@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { logger } from '../util/logger.js';
 
 export interface ApiError extends Error {
 	status?: number;
@@ -17,12 +18,12 @@ export function errorHandler(
 	const status = err.status || err.statusCode || 500;
 	const message = err.message || 'Internal server error';
 
-	console.error('Error:', {
+	logger.error('Request error', {
 		status,
 		message,
-		stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
 		path: req.path,
-		method: req.method
+		method: req.method,
+		stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
 	});
 
 	res.status(status).json({
@@ -35,6 +36,11 @@ export function errorHandler(
  * 404 Not Found handler
  */
 export function notFoundHandler(req: Request, res: Response): void {
+	logger.warn('Route not found', {
+		path: req.path,
+		method: req.method
+	});
+	
 	res.status(404).json({
 		error: 'Route not found',
 		path: req.path

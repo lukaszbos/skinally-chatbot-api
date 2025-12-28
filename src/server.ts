@@ -5,12 +5,29 @@ import conversationsRoutes from './routes/conversations.js';
 import usersRoutes from './routes/users.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { closeDb } from './db/database.js';
+import { logger } from './util/logger.js';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Request logging middleware
+app.use((req, res, next) => {
+	const start = Date.now();
+	
+	res.on('finish', () => {
+		const duration = Date.now() - start;
+		logger.info(`${req.method} ${req.path}`, {
+			status: res.statusCode,
+			duration: `${duration}ms`,
+			ip: req.ip || req.socket.remoteAddress
+		});
+	});
+	
+	next();
+});
 
 // Middleware
 app.use(cors());
@@ -31,24 +48,27 @@ app.use(errorHandler);
 
 // Start server
 const server = app.listen(PORT, () => {
-	console.log(`🚀 Server running on http://localhost:${PORT}`);
-	console.log(`📊 Health check: http://localhost:${PORT}/health`);
+	logger.info(`🚀 Server started successfully`, {
+		port: PORT,
+		environment: process.env.NODE_ENV || 'development',
+		healthCheck: `http://localhost:${PORT}/health`
+	});
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-	console.log('SIGTERM signal received: closing HTTP server');
+	logger.info('SIGTERM signal received: closing HTTP server');
 	server.close(() => {
-		console.log('HTTP server closed');
+		logger.info('HTTP server closed');
 		closeDb();
 		process.exit(0);
 	});
 });
 
 process.on('SIGINT', () => {
-	console.log('SIGINT signal received: closing HTTP server');
+	logger.info('SIGINT signal received: closing HTTP server');
 	server.close(() => {
-		console.log('HTTP server closed');
+		logger.info('HTTP server closed');
 		closeDb();
 		process.exit(0);
 	});
